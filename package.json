@@ -1,0 +1,26 @@
+{
+  "name": "notion-mcp-wrapper",
+  "version": "2.0.0",
+  "description": "Notion MCP Server wrapper with health check, auto-reconnect, and fallback",
+  "main": "lib/index.js",
+  "bin": {
+    "notion-mcp-wrapper": "./bin/notion-mcp-wrapper"
+  },
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "start": "node bin/notion-mcp-wrapper start",
+    "health": "node bin/notion-mcp-wrapper health"
+  },
+  "keywords": ["notion", "mcp", "wrapper", "health-check", "openclaw-skill"],
+  "author": "Galatea",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "dependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Charpup/openclaw-notion-mcp-wrapper.git"
+  }
+}

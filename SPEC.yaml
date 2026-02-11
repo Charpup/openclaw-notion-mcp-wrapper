@@ -1,0 +1,259 @@
+spec_version: "2.0.0"
+module_name: "notion-mcp-wrapper"
+description: |
+  Production-ready Notion MCP Server wrapper with health monitoring, 
+  automatic reconnection, and fallback strategies.
+
+interfaces:
+  - name: "MCPClient"
+    type: "class"
+    description: "Manages MCP protocol communication via stdio"
+    
+    methods:
+      - name: "connect"
+        signature: "() => Promise<void>"
+        description: "Spawn MCP server and initialize connection"
+        contract:
+          preconditions:
+            - "NOTION_TOKEN environment variable is set"
+            - "Not connected yet"
+          postconditions:
+            - "MCP process is spawned"
+            - "Initialize handshake completed"
+            - "Connection is ready for tool calls"
+        test_cases:
+          - id: "TC-001"
+            name: "Successful connection"
+            given:
+              - "NOTION_TOKEN is valid"
+            when:
+              - "connect() is called"
+            then:
+              - "MCP process spawned"
+              - "Resolves without error"
+          
+          - id: "TC-002"
+            name: "Missing token"
+            given:
+              - "NOTION_TOKEN is not set"
+            when:
+              - "connect() is called"
+            then:
+              - "Throws Error with 'NOTION_TOKEN' message"
+      
+      - name: "callTool"
+        signature: "(toolName: string, args: object) => Promise<any>"
+        description: "Call an MCP tool and return parsed result"
+        contract:
+          preconditions:
+            - "Connected to MCP server"
+          postconditions:
+            - "Tool was called with correct arguments"
+            - "Result is parsed JSON or text"
+        test_cases:
+          - id: "TC-003"
+            name: "Call move-page tool"
+            given:
+              - "Connected to MCP"
+            when:
+              - "callTool('API-move-page', {page_id: 'xxx', parent: {...}})"
+            then:
+              - "Returns parsed result object"
+              - "No error thrown"
+      
+      - name: "disconnect"
+        signature: "() => void"
+        description: "Kill MCP process and cleanup"
+        contract:
+          postconditions:
+            - "MCP process terminated"
+            - "Connection state reset"
+
+  - name: "HealthMonitor"
+    type: "class"
+    description: "Continuous health monitoring with automatic recovery"
+    
+    constructor:
+      params:
+        - name: "client"
+          type: "MCPClient"
+        - name: "options"
+          type: "HealthOptions"
+          properties:
+            checkIntervalMs: { type: "number", default: 5000 }
+            timeoutMs: { type: "number", default: 10000 }
+    
+    methods:
+      - name: "start"
+        signature: "() => void"
+        description: "Start periodic health checks"
+      
+      - name: "stop"
+        signature: "() => void"
+        description: "Stop health checks"
+      
+      - name: "isHealthy"
+        signature: "() => boolean"
+        description: "Get current health status"
+    
+    events:
+      - name: "healthChange"
+        payload: "{ healthy: boolean, latency?: number }"
+      - name: "recoveryNeeded"
+        payload: "{ reason: string }"
+
+  - name: "RetryPolicy"
+    type: "class"
+    description: "Configurable retry strategy with exponential backoff"
+    
+    constructor:
+      params:
+        - name: "options"
+          type: "RetryOptions"
+          properties:
+            maxRetries: { type: "number", default: 3 }
+            baseDelayMs: { type: "number", default: 1000 }
+            maxDelayMs: { type: "number", default: 30000 }
+            backoffMultiplier: { type: "number", default: 2 }
+    
+    methods:
+      - name: "execute"
+        signature: "<T>(fn: () => Promise<T>) => Promise<T>"
+        description: "Execute function with retry logic"
+        contract:
+          postconditions:
+            - "Returns result if success within maxRetries"
+            - "Throws last error if all retries fail"
+        test_cases:
+          - id: "TC-004"
+            name: "Success on first try"
+            given:
+              - "Function succeeds immediately"
+            when:
+              - "execute(fn) called"
+            then:
+              - "Returns function result"
+              - "Function called once"
+          
+          - id: "TC-005"
+            name: "Success after retry"
+            given:
+              - "Function fails twice, succeeds third time"
+            when:
+              - "execute(fn) called"
+            then:
+              - "Returns function result"
+              - "Function called 3 times"
+          
+          - id: "TC-006"
+            name: "All retries fail"
+            given:
+              - "Function always fails"
+            when:
+              - "execute(fn) called"
+            then:
+              - "Throws last error"
+              - "Function called maxRetries + 1 times"
+
+  - name: "FallbackStrategy"
+    type: "class"
+    description: "Fallback to direct Notion API when MCP fails"
+    
+    methods:
+      - name: "execute"
+        signature: "(operation: string, params: object) => Promise<any>"
+        description: "Execute operation via direct API"
+        supported_operations:
+          - "movePage"
+          - "getPage"
+          - "updatePage"
+          - "createPage"
+          - "deletePage"
+
+  - name: "NotionMCPWrapper"
+    type: "class"
+    description: "Main entry point combining all features"
+    
+    constructor:
+      params:
+        - name: "options"
+          type: "WrapperOptions"
+          properties:
+            enableHealthMonitor: { type: "boolean", default: true }
+            enableRetry: { type: "boolean", default: true }
+            enableFallback: { type: "boolean", default: true }
+            retryOptions: { type: "RetryOptions" }
+            healthOptions: { type: "HealthOptions" }
+    
+    methods:
+      - name: "start"
+        signature: "() => Promise<StartResult>"
+        description: "Initialize all components"
+      
+      - name: "execute"
+        signature: "(operation: string, params: object) => Promise<ExecuteResult>"
+        description: "Execute operation with retry and fallback"
+      
+      - name: "stop"
+        signature: "() => Promise<void>"
+        description: "Cleanup all resources"
+
+scenarios:
+  - id: "E2E-001"
+    name: "Complete page move workflow"
+    given:
+      - "Wrapper is initialized"
+      - "MCP connection is healthy"
+    when:
+      - "User calls execute('movePage', {page_id, parent})"
+    then:
+      - "Operation succeeds"
+      - "Returns success with MCP source"
+      - "Page is moved in Notion"
+
+  - id: "E2E-002"
+    name: "Recovery from MCP failure"
+    given:
+      - "Wrapper is initialized"
+      - "MCP connection drops"
+    when:
+      - "Health monitor detects failure"
+      - "User attempts operation"
+    then:
+      - "Retry policy attempts reconnection"
+      - "If reconnection fails, fallback to direct API"
+      - "Operation succeeds with fallback source"
+
+  - id: "E2E-003"
+    name: "Automatic reconnection"
+    given:
+      - "Wrapper is initialized"
+      - "MCP connection is lost"
+    when:
+      - "Health monitor detects disconnection"
+      - "Auto-reconnect is triggered"
+    then:
+      - "Connection is restored"
+      - "Operations can continue"
+
+acceptance_criteria:
+  functional:
+    - "All unit tests pass (> 90% coverage)"
+    - "All integration tests pass"
+    - "All E2E scenarios pass"
+    - "MCP stdio communication works correctly"
+    - "Health monitoring detects failures within 5 seconds"
+    - "Retry policy works with exponential backoff"
+    - "Fallback to direct API works for supported operations"
+  
+  non_functional:
+    - "Connection recovery time < 10 seconds"
+    - "Memory usage stable over long runs"
+    - "No process leaks on disconnection"
+    - "Clear error messages for debugging"
+  
+  quality:
+    - "Code follows ESLint rules"
+    - "All public methods have JSDoc"
+    - "README with usage examples"
+    - "CHANGELOG with version history"
