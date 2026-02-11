@@ -74,11 +74,14 @@ describe('MCPClient', () => {
     });
 
     test('handles initialization timeout', async () => {
+      // Use a shorter timeout for testing
+      client.initializeTimeoutMs = 100;
+      
       const connectPromise = client.connect();
       
       // Don't send initialize response
       await expect(connectPromise).rejects.toThrow('initialization timeout');
-    });
+    }, 1000);
   });
 
   describe('callTool', () => {
@@ -149,8 +152,9 @@ describe('MCPClient', () => {
 
   describe('disconnect', () => {
     test('kills process and resets state', async () => {
-      await client.connect();
+      const connectPromise = client.connect();
       
+      // Simulate successful initialize response
       setTimeout(() => {
         stdoutCallbacks[0](Buffer.from(JSON.stringify({
           jsonrpc: '2.0',
@@ -159,7 +163,7 @@ describe('MCPClient', () => {
         }) + '\n'));
       }, 10);
 
-      await new Promise(r => setTimeout(r, 50));
+      await connectPromise;
       
       client.disconnect();
       

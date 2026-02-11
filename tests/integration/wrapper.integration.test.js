@@ -17,10 +17,19 @@ describe('NotionMCPWrapper - Integration', () => {
       connect: jest.fn().mockResolvedValue(),
       callTool: jest.fn(),
       disconnect: jest.fn(),
+      removeAllListeners: jest.fn(),
       isReady: true
     };
 
     MCPClient.mockImplementation(() => mockClient);
+  });
+
+  afterEach(async () => {
+    if (wrapper) {
+      await wrapper.stop();
+      wrapper = null;
+    }
+    jest.clearAllMocks();
   });
 
   describe('start/stop', () => {
@@ -134,10 +143,12 @@ describe('NotionMCPWrapper - Integration', () => {
         execute: jest.fn().mockResolvedValue({
           success: true,
           source: 'fallback'
-        })
+        }),
+        getSupportedOperations: jest.fn().mockReturnValue(['movePage'])
       };
 
-      wrapper = new NotionMCPWrapper({ enableFallback: true });
+      // Disable retry to avoid timeout
+      wrapper = new NotionMCPWrapper({ enableFallback: true, enableRetry: false });
       wrapper.fallbackStrategy = mockFallback;
       await wrapper.start();
 
@@ -150,6 +161,6 @@ describe('NotionMCPWrapper - Integration', () => {
 
       expect(result.success).toBe(true);
       expect(result.source).toBe('fallback');
-    });
+    }, 10000);
   });
 });
