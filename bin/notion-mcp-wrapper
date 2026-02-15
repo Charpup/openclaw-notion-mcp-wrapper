@@ -1,0 +1,66 @@
+#!/usr/bin/env node
+/**
+ * CLI for Notion MCP Wrapper
+ */
+
+const path = require('path');
+const { NotionMCPWrapper } = require(path.join(__dirname, '../lib/notion-mcp-wrapper.js'));
+
+const command = process.argv[2];
+
+async function main() {
+  const wrapper = new NotionMCPWrapper({
+    maxRetries: 5,
+    baseDelayMs: 1000
+  });
+
+  switch (command) {
+    case 'start':
+      console.log('Starting Notion MCP Wrapper...');
+      const result = await wrapper.start();
+      console.log(result.success ? '✓ Started successfully' : '✗ Failed to start');
+      process.exit(result.success ? 0 : 1);
+      break;
+
+    case 'health':
+      const { HealthChecker } = require(path.join(__dirname, '../lib/notion-mcp-wrapper.js'));
+      const checker = new HealthChecker();
+      const health = await checker.checkHealth();
+      console.log(JSON.stringify(health, null, 2));
+      process.exit(health.status === 'healthy' ? 0 : 1);
+      break;
+
+    case 'test':
+      console.log('Testing Notion MCP Wrapper...');
+      await wrapper.start();
+      const testResult = await wrapper.execute('query', { test: true });
+      console.log('Test result:', JSON.stringify(testResult, null, 2));
+      await wrapper.stop();
+      process.exit(0);
+      break;
+
+    default:
+      console.log(`
+Notion MCP Wrapper CLI
+
+Usage:
+  notion-mcp-wrapper <command>
+
+Commands:
+  start   - Start MCP wrapper with health check
+  health  - Check MCP server health
+  test    - Run integration test
+
+Examples:
+  notion-mcp-wrapper start
+  notion-mcp-wrapper health
+  notion-mcp-wrapper test
+`);
+      process.exit(0);
+  }
+}
+
+main().catch(err => {
+  console.error('Error:', err.message);
+  process.exit(1);
+});
