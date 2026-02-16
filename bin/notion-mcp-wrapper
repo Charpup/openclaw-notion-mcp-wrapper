@@ -23,9 +23,29 @@ async function main() {
       break;
 
     case 'health':
-      const { HealthChecker } = require(path.join(__dirname, '../lib/notion-mcp-wrapper.js'));
-      const checker = new HealthChecker();
-      const health = await checker.checkHealth();
+      const { HealthMonitor } = require(path.join(__dirname, '../lib/notion-mcp-wrapper.js'));
+      const { MCPClient } = require(path.join(__dirname, '../lib/notion-mcp-wrapper.js'));
+      
+      const client = new MCPClient();
+      await client.connect();
+      
+      const healthMonitor = new HealthMonitor(client, { checkIntervalMs: 5000 });
+      
+      // Single check
+      const checkPromise = new Promise((resolve) => {
+        healthMonitor.on('healthChange', ({ healthy, latency }) => {
+          resolve({ status: healthy ? 'healthy' : 'unhealthy', latency });
+        });
+        
+        // Timeout fallback
+        setTimeout(() => resolve({ status: 'unknown', latency: null }), 10000);
+      });
+      
+      healthMonitor.start();
+      const health = await checkPromise;
+      healthMonitor.stop();
+      await client.disconnect();
+      
       console.log(JSON.stringify(health, null, 2));
       process.exit(health.status === 'healthy' ? 0 : 1);
       break;
