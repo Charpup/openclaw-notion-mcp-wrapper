@@ -1,12 +1,11 @@
 ---
 name: notion-mcp-wrapper
-version: "2.0.0"
-description: Production-ready Notion MCP Server wrapper with health monitoring, automatic reconnection, and fallback strategies
-author: Galatea
-homepage: https://github.com/Charpup/openclaw-notion-mcp-wrapper
+description: Production-ready Notion MCP Server wrapper with health monitoring, automatic reconnection, and fallback strategies. Use when integrating Notion with OpenClaw, need reliable MCP connection, or require health monitoring for Notion API. Triggers on "notion", "mcp", "notion-mcp-wrapper".
 ---
 
 # notion-mcp-wrapper
+
+**Version:** 2.0.0 | **Author:** Galatea | **Homepage:** https://github.com/Charpup/openclaw-notion-mcp-wrapper
 
 生产级的 Notion MCP Server 包装器，提供健康监控、自动重连和降级策略。
 
