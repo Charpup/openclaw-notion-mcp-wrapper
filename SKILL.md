@@ -1,6 +1,7 @@
 ---
 name: notion-mcp-wrapper
 description: Production-ready Notion MCP Server wrapper with health monitoring, automatic reconnection, and fallback strategies. Use when integrating Notion with OpenClaw, need reliable MCP connection, or require health monitoring for Notion API. Triggers on "notion", "mcp", "notion-mcp-wrapper".
+version: 2.1.0
 metadata:
   openclaw:
     emoji: "📋"
@@ -17,7 +18,7 @@ metadata:
 
 # notion-mcp-wrapper
 
-**Version:** 2.0.0 | **Author:** Galatea | **Homepage:** https://github.com/Charpup/openclaw-notion-mcp-wrapper
+**Version:** 2.1.0 | **Author:** Galatea | **Homepage:** https://github.com/Charpup/openclaw-notion-mcp-wrapper
 
 生产级的 Notion MCP Server 包装器，提供健康监控、自动重连和降级策略。
 
@@ -136,6 +137,20 @@ npm test -- tests/integration
 2. **TDD** - 根据 SPEC 写测试
 3. **实现** - 让测试通过
 4. **重构** - 改进代码质量
+
+## Notion Skill Ecosystem
+
+OpenClaw Notion skills 形成互补生态，可单独使用或组合使用：
+
+| Skill | 职责 | 适用场景 |
+|-------|------|---------|
+| **notion-mcp-wrapper** (本 skill) | 弹性连接层：健康监控、自动重连、REST API 降级 | 任何需要高可用 Notion API 访问的场景 |
+| **notion-md-converter** | 格式转换：Markdown → Notion blocks | 批量导入文档、从 Markdown 源创建 Notion 页面 |
+| **notion-journal-skill** | 日记自动化：内存扫描、内容聚合、按日期创建条目 | 自动生成每日工作日志 |
+
+**组合示例**：
+- 高可用文档导入：`notion-mcp-wrapper` 处理连接健康与降级 → `notion-md-converter` 构建 Notion blocks
+- 弹性日记自动化：`notion-mcp-wrapper` 提供连接保障 → `notion-journal-skill` 创建每日条目
 
 ## License
 
