@@ -1,6 +1,18 @@
 ---
 name: notion-mcp-wrapper
 description: Production-ready Notion MCP Server wrapper with health monitoring, automatic reconnection, and fallback strategies. Use when integrating Notion with OpenClaw, need reliable MCP connection, or require health monitoring for Notion API. Triggers on "notion", "mcp", "notion-mcp-wrapper".
+metadata:
+  openclaw:
+    emoji: "📋"
+    requires:
+      bins: ["node", "npm"]
+      env: ["NOTION_TOKEN"]
+    os: ["linux", "macos", "windows"]
+    install:
+      - id: "npm-install"
+        kind: "shell"
+        command: "cd ~/.openclaw/skills/notion-mcp-wrapper && npm install"
+        label: "Install Node.js dependencies"
 ---
 
 # notion-mcp-wrapper

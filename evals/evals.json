@@ -1,0 +1,51 @@
+{
+  "skill_name": "notion-mcp-wrapper",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Check the health of my Notion MCP connection and report whether the server is reachable.",
+      "expected_output": "Runs a health check against the Notion MCP server, reports connection status (healthy/degraded/down), latency, and any detected errors.",
+      "assertions": [
+        {
+          "text": "Output mentions health or connection status",
+          "type": "contains_any",
+          "values": ["health", "connection", "status", "reachable"]
+        },
+        {
+          "text": "Output provides actionable information about server state",
+          "type": "llm_judge",
+          "criteria": "The response clearly communicates whether the MCP server is operational and what action to take if not."
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Move my Notion page with id 'abc123def456' to a new parent page with id 'xyz789ghi012' using the MCP wrapper.",
+      "expected_output": "Executes the movePage operation through the MCP wrapper, falls back to direct Notion API if MCP fails, and confirms the page was moved successfully.",
+      "assertions": [
+        {
+          "text": "Operation targets movePage or equivalent",
+          "type": "contains_any",
+          "values": ["movePage", "move", "parent", "abc123", "xyz789"]
+        },
+        {
+          "text": "Fallback behavior is acknowledged or handled",
+          "type": "llm_judge",
+          "criteria": "The response demonstrates awareness of fallback strategy (MCP → direct API) and reports the outcome."
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Write a JavaScript function that reverses a string.",
+      "expected_output": "Simple code generation with no Notion or MCP involvement. Skill should NOT trigger.",
+      "assertions": [
+        {
+          "text": "Response does not invoke notion-mcp-wrapper",
+          "type": "llm_judge",
+          "criteria": "The response is a straightforward string-reversal function with no mention of Notion MCP operations."
+        }
+      ]
+    }
+  ]
+}
