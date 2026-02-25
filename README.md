@@ -1,108 +1,175 @@
 # OpenClaw Notion MCP Wrapper
 
-[![OpenClaw Skill](https://img.shields.io/badge/OpenClaw-Skill-blue)](https://clawhub.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg)](https://github.com/Charpup/openclaw-notion-mcp-wrapper/releases/tag/v2.0.1)
+[![OpenClaw Skill](https://img.shields.io/badge/OpenClaw-Skill-4CAF50.svg)](https://openclaw.ai)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-green.svg)](https://nodejs.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![evals](https://img.shields.io/badge/evals-3%20cases-blueviolet.svg)](evals/evals.json)
 
-> Notion MCP Server wrapper with health check, auto-reconnect, and fallback
+> Production-ready Notion MCP Server wrapper with health monitoring, automatic reconnection, and transparent fallback to direct REST API. Built for OpenClaw agents operating in headless / cloud environments.
 
-**Dependencies**: This skill works best with [openclaw-notion-md-converter](https://github.com/Charpup/openclaw-notion-md-converter) for Markdown → Notion blocks conversion.
+**Companion skill:** [openclaw-notion-md-converter](https://github.com/Charpup/openclaw-notion-md-converter) — Markdown → Notion blocks conversion.
+
+---
+
+## AI Agent Quick Reference
+
+```yaml
+# Skill identity (SKILL.md frontmatter)
+name: notion-mcp-wrapper
+version: "2.0.1"
+triggers:
+  - "notion"
+  - "mcp"
+  - "notion-mcp-wrapper"
+  - "move page"
+  - "notion health"
+
+# Runtime requirements
+requires:
+  bins: [node, npm]
+  env: [NOTION_TOKEN]   # or NOTION_API_KEY
+
+# Install
+run: cd ~/.openclaw/skills/notion-mcp-wrapper && npm install
+```
+
+**When to invoke:**
+- Check Notion MCP connectivity / health status
+- Execute Notion operations (movePage, createPage, updatePage, deletePage) via MCP
+- Auto-reconnect after MCP server crash or timeout
+- Fall back to direct Notion REST API when MCP is unavailable
+
+**When NOT to invoke:**
+- Simple Notion reads that work directly via MCP tools
+- Non-Notion operations
+
+---
 
 ## Features
 
-- ✅ **Health Check** - Monitor MCP server connectivity
-- ✅ **Auto Reconnect** - Exponential backoff retry on failure  
-- ✅ **Seamless Fallback** - Auto-switch to direct API when MCP fails
-- ✅ **CLI Tools** - Quick diagnostics and operations
+| Feature | Description |
+|---------|-------------|
+| **Health Monitoring** | Continuous MCP ping; reports `healthy` / `degraded` / `down` with latency |
+| **Auto Reconnect** | Exponential backoff retry — configurable `maxRetries` and `baseDelayMs` |
+| **Seamless Fallback** | Auto-switches to Notion REST API when MCP fails; transparent to callers |
+| **Operation Support** | movePage, getPage, updatePage, createPage, deletePage (with fallback) |
+| **Full Test Suite** | Unit + integration tests via Jest |
+
+---
 
 ## Installation
 
 ```bash
-git clone https://github.com/Charpup/openclaw-notion-mcp-wrapper.git
-cd openclaw-notion-mcp-wrapper
+git clone https://github.com/Charpup/openclaw-notion-mcp-wrapper.git \
+  ~/.openclaw/skills/notion-mcp-wrapper
+cd ~/.openclaw/skills/notion-mcp-wrapper
 npm install
 ```
 
-## Prerequisites
+**Environment:**
 
-### OAuth Setup for Notion MCP Server
+```bash
+export NOTION_TOKEN="ntn_YOUR_INTERNAL_INTEGRATION_TOKEN"
+# Alternative:
+export NOTION_API_KEY="ntn_YOUR_INTERNAL_INTEGRATION_TOKEN"
+```
 
-For **cloud VM / headless CLI environments** (like this case):
+> **Headless / cloud setup:** Use an [Internal Integration Token](https://www.notion.so/my-integrations) — no browser OAuth needed. Share target Notion pages with your integration before use.
 
-1. **Use Internal Integration Token** (Recommended for agents)
-   - Go to [Notion Integrations](https://www.notion.so/my-integrations)
-   - Create "Internal" integration (not Public OAuth)
-   - Copy the token: `ntn_...`
-   - No OAuth redirect needed!
-
-2. **Set Environment Variable**
-   ```bash
-   export NOTION_API_KEY="ntn_YOUR_INTERNAL_TOKEN"
-   ```
-
-3. **Share Pages with Integration**
-   - In Notion, go to page → Share → Add integration
-   - Select your integration name
-
-4. **Start MCP Server**
-   ```bash
-   npx -y @notionhq/notion-mcp-server
-   ```
-
-**Why Internal Token?**
-- No browser-based OAuth flow needed
-- Perfect for CLI-only environments
-- Same API access as OAuth
+---
 
 ## Usage
 
-### As Library
+### As a Library
 
 ```javascript
 const { NotionMCPWrapper } = require('./lib/notion-mcp-wrapper');
 
 const wrapper = new NotionMCPWrapper({
   maxRetries: 5,
-  baseDelayMs: 1000
+  baseDelayMs: 1000,
+  enableHealthMonitor: true,
+  enableFallback: true,
 });
 
-// Start wrapper
 await wrapper.start();
 
-// Execute with auto-fallback
-const result = await wrapper.execute('query', { databaseId: 'xxx' });
-console.log(result.source); // 'mcp' or 'fallback'
+// Execute with automatic MCP → API fallback
+const result = await wrapper.execute('movePage', {
+  page_id: 'abc123def456',
+  parent: { page_id: 'xyz789ghi012' },
+});
+
+console.log(result.source); // 'mcp' | 'fallback'
+await wrapper.stop();
 ```
 
-### CLI Commands
+### CLI
 
 ```bash
-# Check MCP health
-npm run health
-
-# Start wrapper
-npm run start
-
-# Run tests
-npm test
+npm run health                                             # Check MCP health
+node bin/notion-mcp-wrapper.js move-page <page-id> <parent-id>
+npm test                                                   # Run test suite
 ```
+
+---
+
+## Supported Operations
+
+| Operation | MCP Tool | API Fallback |
+|-----------|----------|--------------|
+| `movePage` | `API-move-page` | ✅ |
+| `getPage` | `API-retrieve-a-page` | ✅ |
+| `updatePage` | `API-patch-page` | ✅ |
+| `createPage` | `API-post-page` | ✅ |
+| `deletePage` | `API-delete-a-block` | ✅ |
+| `getBlockChildren` | `API-get-block-children` | ❌ |
+| `appendBlocks` | `API-patch-block-children` | ❌ |
+| `queryDatabase` | `API-query-data-source` | ❌ |
+| `search` | `API-post-search` | ❌ |
+
+---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────┐
-│     NotionMCPWrapper            │
-├─────────────────────────────────┤
-│  HealthChecker  → Ping MCP      │
-│  Reconnector    → Exponential   │
-│  FallbackMgr    → Auto-switch   │
-└─────────────────────────────────┘
+NotionMCPWrapper  ←  entry point
+├── HealthMonitor     periodic MCP ping → healthy / degraded / down
+├── RetryPolicy       exponential backoff, configurable maxRetries
+├── MCPClient         stdio-based MCP protocol communication
+└── FallbackStrategy  Notion REST API when MCP unavailable
 ```
+
+---
+
+## Evals
+
+Skill test cases live in [`evals/evals.json`](evals/evals.json) following the skill-creator standard:
+
+| ID | Scenario | Expected Trigger |
+|----|----------|-----------------|
+| 1 | Check Notion MCP health status | ✅ Yes |
+| 2 | Move page via MCP wrapper with fallback | ✅ Yes |
+| 3 | Write a JavaScript string-reversal function | ❌ No |
+
+---
+
+## Version History
+
+| Version | Changes |
+|---------|---------|
+| **v2.0.1** | Add `metadata.openclaw` compliance block; add `evals/evals.json` (3 cases) |
+| **v2.0.0** | Production rewrite: HealthMonitor, RetryPolicy, FallbackStrategy, full tests |
+
+---
 
 ## Related Projects
 
-- [openclaw-notion-md-converter](https://github.com/Charpup/openclaw-notion-md-converter) - Markdown to Notion blocks
-- [OpenClaw](https://github.com/openclaw/openclaw) - The agent framework
+- [openclaw-notion-md-converter](https://github.com/Charpup/openclaw-notion-md-converter) — Markdown → Notion blocks
+- [triadev](https://github.com/Charpup/triadev) — Golden Triangle workflow (uses this skill)
+- [OpenClaw](https://openclaw.ai) — The agent framework
 
 ## License
 
-MIT
+MIT — [Charpup](https://github.com/Charpup)
