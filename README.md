@@ -5,6 +5,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-green.svg)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![evals](https://img.shields.io/badge/evals-3%20cases-blueviolet.svg)](evals/evals.json)
+[![Oathe Security](https://img.shields.io/badge/Oathe-92%2F100%20SAFE-brightgreen.svg)](https://oathe.ai/report/Charpup/openclaw-notion-mcp-wrapper)
 
 > Production-ready Notion MCP Server wrapper with health monitoring, automatic reconnection, and transparent fallback to direct REST API. Built for OpenClaw agents operating in headless / cloud environments.
 
