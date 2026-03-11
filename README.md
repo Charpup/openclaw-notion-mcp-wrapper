@@ -174,3 +174,6 @@ Skill test cases live in [`evals/evals.json`](evals/evals.json) following the sk
 ## License
 
 MIT — [Charpup](https://github.com/Charpup)
+
+## Changelog
+- 2026-03-11: Skill audit upgrade — normalized SKILL.md frontmatter to `name` + `description`, revalidated trigger wording, and rechecked lightweight lint/smoke compatibility with OpenClaw.
